@@ -239,8 +239,8 @@ export async function* generateChatResponseStream(
   // If it's a native Gemini model, use the SDK directly
   const isNativeGeminiModel = currentModel === 'gemini-3-flash-preview' || currentModel === 'gemini-3.1-pro-preview';
 
-  // Use SDK if we have a Gemini key (user or platform) AND user hasn't forced an OpenRouter key for this model
-  if (platformApiKey && isNativeGeminiModel && !userOpenRouterKey) {
+  // Use SDK if we have a Gemini key (user or platform) for native Gemini models
+  if (platformApiKey && isNativeGeminiModel) {
      try {
        yield* geminiSdkFallback(messages, userMemory, userName, persona, expertId, currentModel);
        return;
@@ -254,7 +254,7 @@ export async function* generateChatResponseStream(
 
   // SILENT FALLBACK: If it's a Gemini model (even if selected via OpenRouter ID) and we have a Gemini key, 
   // use the Gemini SDK directly to avoid OpenRouter credit issues, UNLESS user provided an OpenRouter key.
-  if (isGeminiModel && platformApiKey && !userOpenRouterKey) {
+  if (isGeminiModel && platformApiKey && !userOpenRouterKey && !isNativeGeminiModel) {
     try {
       let geminiModelId = 'gemini-3-flash-preview';
       if (currentModel.includes('pro') || currentModel.includes('2.0')) geminiModelId = 'gemini-3.1-pro-preview';
@@ -449,15 +449,40 @@ Memória: ${userMemory || 'Nenhuma'}`;
 }
 
 export async function generateImage(prompt: string): Promise<string> {
+  const platformApiKey = getGeminiApiKey();
+  if (!platformApiKey) {
+    return 'Desculpe, você precisa configurar uma chave da API do Google Gemini nas configurações para gerar imagens.';
+  }
+
   try {
-    // Using OpenRouter for image generation if possible, or fallback to a message
-    // Note: OpenRouter doesn't have a direct image generation endpoint like OpenAI's /images/generations
-    // but some models can return images if they are multimodal and support it.
-    // For now, we'll suggest using a model that supports image generation or return a placeholder.
+    const ai = new GoogleGenAI({ apiKey: platformApiKey });
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-image-preview',
+      contents: {
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1",
+          imageSize: "1K"
+        }
+      },
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        const base64EncodeString: string = part.inlineData.data;
+        return `![Imagem Gerada](data:image/png;base64,${base64EncodeString})`;
+      }
+    }
     
-    return `Desculpe, a geração direta de imagens está temporariamente desativada. Tente pedir para eu descrever a imagem para você. (Prompt: ${prompt})`;
+    return 'Desculpe, não foi possível gerar a imagem. O modelo não retornou dados de imagem válidos.';
   } catch (error: any) {
     console.error('[Aura AI] Image generation error:', error);
-    return 'Desculpe, ocorreu um erro ao processar seu pedido.';
+    return `Desculpe, ocorreu um erro ao gerar a imagem: ${error.message}`;
   }
 }

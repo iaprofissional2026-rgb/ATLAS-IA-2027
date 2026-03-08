@@ -33,12 +33,16 @@ export function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  React.useEffect(() => {
+    setGeminiApiKeyInput(geminiApiKey);
+  }, [geminiApiKey]);
+
   const nextKeyName = `7mk${geminiKeys.length + 1}`;
 
   const handleAddGeminiKey = () => {
     if (!geminiApiKeyInput.trim()) return;
     addGeminiKey(nextKeyName, geminiApiKeyInput);
-    setGeminiApiKeyInput('');
+    setGeminiApiKey(geminiApiKeyInput);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
