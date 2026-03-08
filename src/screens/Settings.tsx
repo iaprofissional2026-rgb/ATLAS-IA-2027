@@ -17,11 +17,14 @@ export function Settings() {
     setThemeSettings,
     openRouterKey,
     setOpenRouterKey,
+    geminiApiKey,
+    setGeminiApiKey,
   } = useAppContext();
   
   const [name, setName] = useState(user?.name || '');
   const [memory, setMemory] = useState(user?.memory || '');
   const [openRouterKeyInput, setOpenRouterKeyInput] = useState(openRouterKey);
+  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState(geminiApiKey);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -51,8 +54,9 @@ export function Settings() {
     if (!user) return;
     setIsSaving(true);
     
-    // Save OpenRouter Key
+    // Save API Keys
     setOpenRouterKey(openRouterKeyInput);
+    setGeminiApiKey(geminiApiKeyInput);
 
     setTimeout(() => {
       setUser({ ...user, name, memory });
@@ -163,7 +167,7 @@ export function Settings() {
 
             <button
               onClick={handleSaveProfile}
-              disabled={isSaving || (name === user?.name && memory === user?.memory && openRouterKeyInput === openRouterKey)}
+              disabled={isSaving || (name === user?.name && memory === user?.memory && openRouterKeyInput === openRouterKey && geminiApiKeyInput === geminiApiKey)}
               className="w-full py-3 accent-bg text-white rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex justify-center items-center space-x-2"
             >
               {isSaving ? (
@@ -188,6 +192,35 @@ export function Settings() {
             API & Conexões
           </h2>
           <div className="glass-panel rounded-2xl p-5 shadow-sm space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                <div className="flex items-center">
+                  <Key className="w-4 h-4 mr-2 accent-text" />
+                  Chave Gemini API
+                </div>
+                <a 
+                  href="https://aistudio.google.com/app/apikey" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="text-[10px] accent-text flex items-center hover:underline"
+                >
+                  Obter chave <ExternalLink className="w-2 h-2 ml-1" />
+                </a>
+              </label>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                Necessária para modelos Gemini e geração de imagens.
+              </p>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={geminiApiKeyInput}
+                  onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/50 dark:bg-black/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[var(--color-accent)] outline-none transition-all text-gray-900 dark:text-gray-100 font-mono text-xs"
+                  placeholder="AIzaSy..."
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
                 <div className="flex items-center">

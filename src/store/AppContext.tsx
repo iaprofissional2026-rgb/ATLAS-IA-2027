@@ -80,6 +80,8 @@ interface AppContextType {
   setThemeSettings: (settings: ThemeSettings) => void;
   openRouterKey: string;
   setOpenRouterKey: (key: string) => void;
+  geminiApiKey: string;
+  setGeminiApiKey: (key: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -147,6 +149,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return '';
     }
   });
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(() => {
+    try {
+      return localStorage.getItem('aura_gemini_api_key') || '';
+    } catch (e) {
+      console.error('Error reading aura_gemini_api_key from localStorage', e);
+      return '';
+    }
+  });
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>(() => {
     try {
       const saved = localStorage.getItem('aura_theme_settings');
@@ -203,6 +213,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error('Error saving openrouter_api_key to localStorage', e);
     }
   }, [openRouterKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('aura_gemini_api_key', geminiApiKey);
+    } catch (e) {
+      console.error('Error saving gemini_api_key to localStorage', e);
+    }
+  }, [geminiApiKey]);
 
   useEffect(() => {
     try {
@@ -333,6 +351,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setThemeSettings,
         openRouterKey,
         setOpenRouterKey,
+        geminiApiKey,
+        setGeminiApiKey,
       }}
     >
       {children}

@@ -222,7 +222,7 @@ export function Chat() {
       const stream = await generateChatResponseStream(
         history, 
         user?.memory || '', 
-        user?.name || '',
+        user?.name || 'Usuário',
         persona,
         activeConversation?.expertId || 'geral'
       );

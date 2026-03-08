@@ -101,6 +101,10 @@ export function Onboarding() {
         phoneModel,
         gender: gender as 'male' | 'female',
       });
+    } else {
+      alert('Por favor, complete a configuração inicial (Marca e Gênero) antes de entrar.');
+      setShowSetupForm(true);
+      setShowSlides(false);
     }
   };
 
