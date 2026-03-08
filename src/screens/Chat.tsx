@@ -53,9 +53,12 @@ export function Chat() {
   useEffect(() => {
     const checkApiKey = async () => {
       try {
-        // Check if user has provided a key in settings
-        const userKey = localStorage.getItem('aura_gemini_api_key');
-        if (userKey && userKey.trim()) {
+        const userGeminiKey = localStorage.getItem('aura_gemini_api_key');
+        const userOpenRouterKey = localStorage.getItem('aura_openrouter_api_key');
+        const envGeminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        const envOpenRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+        
+        if (userGeminiKey?.trim() || userOpenRouterKey?.trim() || envGeminiKey || envOpenRouterKey) {
           setHasApiKey(true);
           return;
         }
@@ -63,17 +66,15 @@ export function Chat() {
         if (typeof window !== 'undefined' && (window as any).aistudio && typeof (window as any).aistudio.hasSelectedApiKey === 'function') {
           const hasKey = await (window as any).aistudio.hasSelectedApiKey();
           setHasApiKey(!!hasKey);
+        } else {
+          setHasApiKey(false);
         }
       } catch (e) {
         console.error('Error checking API key:', e);
         setHasApiKey(false);
       }
     };
-    if (currentModel.includes('gemini-3.1-flash-image-preview')) {
-      checkApiKey();
-    } else {
-      setHasApiKey(true);
-    }
+    checkApiKey();
   }, [currentModel]);
 
   const handleOpenKeyDialog = async () => {
