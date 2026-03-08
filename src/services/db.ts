@@ -56,3 +56,15 @@ export const clearAllHistory = async () => {
   await db.conversations.clear();
   await db.messages.clear();
 };
+
+export const clearOldHistory = async (days: number) => {
+  const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
+  
+  await db.transaction('rw', db.conversations, db.messages, async () => {
+    const oldConvs = await db.conversations.where('updatedAt').below(cutoffTime).toArray();
+    const oldConvIds = oldConvs.map(c => c.id);
+    
+    await db.conversations.bulkDelete(oldConvIds);
+    await db.messages.where('conversationId').anyOf(oldConvIds).delete();
+  });
+};

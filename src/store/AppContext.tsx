@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { db, saveConversation, saveMessage, getConversations, getMessages, clearAllHistory } from '../services/db';
+import { db, saveConversation, saveMessage, getConversations, getMessages, clearAllHistory, clearOldHistory as dbClearOldHistory } from '../services/db';
 
 export type Screen = 'onboarding' | 'loading-adaptation' | 'home' | 'chat' | 'tools' | 'settings';
 export type Persona = 'Aura' | 'Atlas';
@@ -76,6 +76,7 @@ interface AppContextType {
   persona: Persona;
   setPersona: (persona: Persona) => void;
   clearHistory: () => void;
+  clearOldHistory: (days: number) => void;
   youtubeVideoId: string | null;
   setYoutubeVideoId: (id: string | null) => void;
   isYoutubePlayerVisible: boolean;
@@ -392,6 +393,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearAllHistory();
   };
 
+  const clearOldHistory = async (days: number) => {
+    const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
+    setConversations((prev) => prev.filter(conv => conv.updatedAt >= cutoffTime));
+    
+    // If active conversation is old, clear it
+    const activeConv = conversations.find(c => c.id === activeConversationId);
+    if (activeConv && activeConv.updatedAt < cutoffTime) {
+      setActiveConversationId(null);
+    }
+    
+    await dbClearOldHistory(days);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -411,6 +425,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         persona,
         setPersona,
         clearHistory,
+        clearOldHistory,
         youtubeVideoId,
         setYoutubeVideoId,
         isYoutubePlayerVisible,

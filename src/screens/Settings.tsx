@@ -10,6 +10,7 @@ export function Settings() {
     theme, 
     setTheme, 
     clearHistory, 
+    clearOldHistory,
     setCurrentScreen, 
     persona, 
     setPersona, 
@@ -90,6 +91,16 @@ export function Settings() {
     if (window.confirm('Tem certeza que deseja apagar todo o histórico de conversas? Esta ação não pode ser desfeita.')) {
       clearHistory();
       alert('Histórico apagado com sucesso.');
+    }
+  };
+
+  const handleClearOldHistory = () => {
+    const days = parseInt(window.prompt('Quantos dias de histórico você deseja manter? (ex: 30)', '30') || '0', 10);
+    if (days > 0) {
+      if (window.confirm(`Tem certeza que deseja apagar todas as conversas com mais de ${days} dias? Esta ação não pode ser desfeita.`)) {
+        clearOldHistory(days);
+        alert(`Conversas com mais de ${days} dias apagadas com sucesso.`);
+      }
     }
   };
 
@@ -575,6 +586,15 @@ export function Settings() {
             Conta & Dados
           </h2>
           <div className="glass-panel rounded-2xl overflow-hidden shadow-sm">
+            <button
+              onClick={handleClearOldHistory}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 group"
+            >
+              <div className="flex items-center text-gray-700 dark:text-gray-300 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                <Trash2 className="w-5 h-5 mr-3" />
+                <span className="font-medium">Limpar Conversas Antigas</span>
+              </div>
+            </button>
             <button
               onClick={handleClearHistory}
               className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 group"
