@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Paperclip, Mic, Copy, Check, Plus, ArrowLeft, MessageSquare, Briefcase, GraduationCap, HeartPulse, Code, RefreshCw, X, Image as ImageIcon, Youtube, Key, Search, ChevronDown } from 'lucide-react';
+import { Send, Paperclip, Mic, Copy, Check, Plus, ArrowLeft, MessageSquare, Briefcase, GraduationCap, HeartPulse, Code, RefreshCw, X, Image as ImageIcon, Youtube, Key, Search, ChevronDown, Sparkles, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { v4 as uuidv4 } from 'uuid';
+import html2pdf from 'html2pdf.js';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { useAppContext, Message } from '../store/AppContext';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 import { generateChatResponseStream, switchModel, getCurrentModel, generateImage, MODELS } from '../services/ai';
 import { cn } from '../lib/utils';
 
@@ -32,7 +37,9 @@ export function Chat() {
     persona,
     setPersona,
     setYoutubeVideoId,
-    setIsYoutubePlayerVisible
+    setIsYoutubePlayerVisible,
+    customExperts,
+    addCustomExpert
   } = useAppContext();
   
   const [input, setInput] = useState('');
@@ -40,6 +47,12 @@ export function Chat() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showPersonaMenu, setShowPersonaMenu] = useState(false);
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const [showCreateExpertModal, setShowCreateExpertModal] = useState(false);
+  const [newExpertName, setNewExpertName] = useState('');
+  const [newExpertPrompt, setNewExpertPrompt] = useState('');
+  const [expertFileName, setExpertFileName] = useState<string | null>(null);
+  const [isUploadingExpertFile, setIsUploadingExpertFile] = useState(false);
+  const expertFileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [streamingMessage, setStreamingMessage] = useState<string>('');
@@ -47,6 +60,7 @@ export function Chat() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   const activeModel = MODELS.find(m => m.id === currentModel) || MODELS[0];
 
@@ -80,6 +94,29 @@ export function Chat() {
     if (typeof window !== 'undefined' && (window as any).aistudio) {
       await (window as any).aistudio.openSelectKey();
       setHasApiKey(true);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    const element = document.getElementById('chat-export-container');
+    if (!element) return;
+    
+    setIsExporting(true);
+    
+    const opt = {
+      margin:       10,
+      filename:     `${activeConversation?.title || 'conversa'}.pdf`,
+      image:        { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+    };
+
+    try {
+      await html2pdf().set(opt).from(element).save();
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -381,6 +418,91 @@ export function Chat() {
     createNewConversation(undefined, expertId);
   };
 
+  const handleCreateExpert = () => {
+    if (!newExpertName.trim() || !newExpertPrompt.trim()) return;
+    
+    addCustomExpert({
+      id: `custom-${uuidv4()}`,
+      name: newExpertName,
+      description: 'Assistente Personalizado',
+      prompt: newExpertPrompt,
+      icon: 'Sparkles'
+    });
+    
+    setNewExpertName('');
+    setNewExpertPrompt('');
+    setExpertFileName(null);
+    setShowCreateExpertModal(false);
+  };
+
+  const handleExpertFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setExpertFileName(file.name);
+    setIsUploadingExpertFile(true);
+
+    try {
+      let text = '';
+      
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n\n';
+        }
+        text = fullText;
+      } else {
+        text = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result as string);
+          reader.onerror = (error) => reject(error);
+          reader.readAsText(file);
+        });
+      }
+
+      if (text) {
+        setNewExpertPrompt(prev => {
+          const prefix = prev ? prev + '\n\n' : '';
+          return prefix + `--- CONTEÚDO DO ARQUIVO (${file.name}) ---\n${text}`;
+        });
+      }
+    } catch (error) {
+      console.error('Error reading file:', error);
+      alert('Erro ao ler o arquivo. Certifique-se de que é um formato de texto ou PDF válido.');
+      setExpertFileName(null);
+    } finally {
+      setIsUploadingExpertFile(false);
+      if (expertFileInputRef.current) {
+        expertFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const allExperts = [
+    ...EXPERTS,
+    ...customExperts.map(ce => ({
+      id: ce.id,
+      icon: Sparkles,
+      label: ce.name,
+      desc: ce.description,
+      color: 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900/30'
+    }))
+  ];
+
+  const handleYoutubeSearchClick = () => {
+    if (activeConversation?.expertId !== 'youtube') {
+      const convId = createNewConversation(undefined, 'youtube');
+      setActiveConversationId(convId);
+    }
+    setInput('Pesquise vídeos no YouTube (do Brasil) sobre: ');
+  };
+
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto bg-transparent">
       <header className="glass-panel flex items-center justify-between px-4 py-3 border-b border-gray-200/50 dark:border-gray-800/50 shrink-0 relative z-10">
@@ -405,7 +527,7 @@ export function Chat() {
                   {persona}
                 </h1>
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
-                  {activeConversation?.expertId ? EXPERTS.find(e => e.id === activeConversation.expertId)?.label : 'Geral'}
+                  {activeConversation?.expertId ? allExperts.find(e => e.id === activeConversation.expertId)?.label : 'Geral'}
                 </p>
               </div>
             </button>
@@ -503,17 +625,31 @@ export function Chat() {
             </AnimatePresence>
           </div>
 
-          <button
-            onClick={() => createNewConversation()}
-            className="p-2 accent-text bg-white/50 dark:bg-black/50 rounded-full hover:bg-white/80 dark:hover:bg-white/10 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-1">
+            {messages.length > 0 && (
+              <button
+                onClick={handleExportPDF}
+                disabled={isExporting}
+                title="Exportar como PDF"
+                className="p-2 text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-black/50 rounded-full hover:bg-white/80 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+            )}
+            <button
+              onClick={() => createNewConversation()}
+              title="Nova Conversa"
+              className="p-2 accent-text bg-white/50 dark:bg-black/50 rounded-full hover:bg-white/80 dark:hover:bg-white/10 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {!hasApiKey && currentModel.includes('gemini-3.1-flash-image-preview') && (
+      <div className="flex-1 overflow-y-auto p-4">
+        <div id="chat-export-container" className="space-y-6">
+          {!hasApiKey && currentModel.includes('gemini-3.1-flash-image-preview') && (
           <div className="mx-auto max-w-md p-6 glass-panel rounded-2xl text-center space-y-4 my-8">
             <Key className="w-12 h-12 mx-auto text-amber-500" />
             <h3 className="text-lg font-semibold">Chave de API Necessária</h3>
@@ -540,7 +676,7 @@ export function Chat() {
             </p>
             
             <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-              {EXPERTS.map((expert) => (
+              {allExperts.map((expert) => (
                 <button
                   key={expert.id}
                   onClick={() => handleExpertClick(expert.id)}
@@ -558,7 +694,95 @@ export function Chat() {
                   <span className="text-[10px] text-gray-500 mt-1">{expert.desc}</span>
                 </button>
               ))}
+              
+              <button
+                onClick={() => setShowCreateExpertModal(true)}
+                className="flex flex-col items-center p-4 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 transition-all text-center"
+              >
+                <div className="p-3 rounded-xl mb-3 text-gray-400 dark:text-gray-500">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <span className="font-medium text-sm text-gray-900 dark:text-gray-100">Criar Novo</span>
+                <span className="text-[10px] text-gray-500 mt-1">Assistente Personalizado</span>
+              </button>
             </div>
+          </div>
+        )}
+
+        {showCreateExpertModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-[#1E1E1E] rounded-2xl p-6 w-full max-w-md shadow-xl border border-gray-200 dark:border-gray-800"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Criar Assistente</h3>
+                <button onClick={() => setShowCreateExpertModal(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Assistente</label>
+                  <input 
+                    type="text" 
+                    value={newExpertName}
+                    onChange={(e) => setNewExpertName(e.target.value)}
+                    placeholder="Ex: Tradutor de Artigos"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[var(--color-accent)] outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-end mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Instruções (Prompt)</label>
+                    <button 
+                      onClick={() => expertFileInputRef.current?.click()}
+                      disabled={isUploadingExpertFile}
+                      className="text-[10px] flex items-center space-x-1 text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+                    >
+                      {isUploadingExpertFile ? (
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Paperclip className="w-3 h-3" />
+                      )}
+                      <span>{isUploadingExpertFile ? 'Processando...' : 'Anexar Arquivo (.txt, .pdf, .csv)'}</span>
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={expertFileInputRef}
+                      onChange={handleExpertFileUpload}
+                      accept=".txt,.md,.csv,.json,.pdf"
+                      className="hidden"
+                    />
+                  </div>
+                  {expertFileName && (
+                    <div className="mb-2 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg text-xs border border-blue-100 dark:border-blue-800/30">
+                      <span className="truncate">Arquivo carregado: {expertFileName}</span>
+                      <button onClick={() => setExpertFileName(null)} className="ml-2 hover:text-red-500">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  <textarea 
+                    value={newExpertPrompt}
+                    onChange={(e) => setNewExpertPrompt(e.target.value)}
+                    placeholder="Descreva exatamente como este assistente deve agir, falar e quais regras ele deve seguir..."
+                    className="w-full h-32 p-4 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[var(--color-accent)] outline-none resize-none"
+                  />
+                </div>
+                
+                <button
+                  onClick={handleCreateExpert}
+                  disabled={!newExpertName.trim() || !newExpertPrompt.trim()}
+                  className="w-full py-3 accent-bg text-white rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  Criar Assistente
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
 
@@ -730,6 +954,7 @@ export function Chat() {
           )}
         </AnimatePresence>
         <div ref={messagesEndRef} />
+        </div>
       </div>
 
       <div className="glass-panel p-4 border-t border-gray-200/50 dark:border-gray-800/50 shrink-0 z-10">
@@ -759,8 +984,17 @@ export function Chat() {
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="p-3 text-gray-400 hover:text-[#4A5568] dark:hover:text-[#718096] transition-colors"
+            title="Anexar Imagem"
           >
             <ImageIcon className="w-5 h-5" />
+          </button>
+          
+          <button 
+            onClick={handleYoutubeSearchClick}
+            className="p-3 text-red-400 hover:text-red-500 transition-colors"
+            title="Pesquisar no YouTube"
+          >
+            <Youtube className="w-5 h-5" />
           </button>
           
           <textarea

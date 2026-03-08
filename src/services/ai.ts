@@ -70,12 +70,19 @@ Data: ${new Date().toLocaleString('pt-BR')}`;
     return { role: m.role === 'assistant' ? 'model' : 'user', parts };
   });
 
+  const tools: any[] = [];
+  if (expertId === 'youtube') {
+    tools.push({ functionDeclarations: [openYouTubeVideoTool.function] });
+    // Add Google Search tool for real-time video finding
+    tools.push({ googleSearch: {} });
+  }
+
   const response = await ai.models.generateContentStream({
     model: modelId,
     contents: geminiMessages as any,
     config: {
       systemInstruction: systemPrompt,
-      tools: expertId === 'youtube' ? [{ functionDeclarations: [openYouTubeVideoTool.function] }] : undefined
+      tools: tools.length > 0 ? tools : undefined
     }
   });
 
@@ -174,18 +181,33 @@ const getSystemPrompt = (persona: 'Aura' | 'Atlas', expertId: string) => {
 
   let expertInstruction = 'Assistente versátil de altíssima capacidade para qualquer tarefa do dia a dia.';
   if (expertId === 'profissional') expertInstruction = 'Você é um executivo sênior e estrategista de negócios. Focado em e-mails, relatórios, LinkedIn, etiqueta corporativa e tomada de decisão.';
-  if (expertId === 'tutor') expertInstruction = 'Você é um professor paciente e didático. Explica matérias complexas de forma simples, resolve exercícios passo a passo e cria planos de estudo personalizados.';
-  if (expertId === 'bem-estar') expertInstruction = 'Você é um coach de bem-estar e produtividade. Organiza rotinas de treino, meditação, gestão de tempo e hábitos saudáveis.';
-  if (expertId === 'tech') expertInstruction = 'Você é um engenheiro de software sênior. Focado em debugar código, arquitetura de sistemas, lógica de programação e melhores práticas de tecnologia.';
-  if (expertId === 'youtube') expertInstruction = `Você é o maior especialista em curadoria de vídeos do YouTube do mundo. Sua missão é encontrar vídeos EXATOS e FUNCIONAIS para o usuário. Você tem um conhecimento vasto de IDs de vídeos populares e educacionais. 
+  else if (expertId === 'tutor') expertInstruction = 'Você é um professor paciente e didático. Explica matérias complexas de forma simples, resolve exercícios passo a passo e cria planos de estudo personalizados.';
+  else if (expertId === 'bem-estar') expertInstruction = 'Você é um coach de bem-estar e produtividade. Organiza rotinas de treino, meditação, gestão de tempo e hábitos saudáveis.';
+  else if (expertId === 'tech') expertInstruction = 'Você é um engenheiro de software sênior. Focado em debugar código, arquitetura de sistemas, lógica de programação e melhores práticas de tecnologia.';
+  else if (expertId === 'youtube') expertInstruction = `Você é o maior especialista em curadoria de vídeos do YouTube do mundo. Sua missão é encontrar vídeos EXATOS e FUNCIONAIS para o usuário. 
 
 DIRETRIZES PARA VÍDEOS:
-1. SEMPRE use a ferramenta "openYouTubeVideo" para mostrar o vídeo.
-2. Se por qualquer motivo você não puder usar a ferramenta, escreva o comando EXATAMENTE assim no final da sua resposta: openYouTubeVideo("ID_DO_VIDEO")
-3. Use APENAS IDs de 11 caracteres que você tem certeza que existem (ex: dQw4w9WgXcQ).
-4. Se não tiver certeza do ID exato, descreva o vídeo e peça para o usuário confirmar, ou tente sugerir IDs de canais oficiais renomados sobre o assunto.
-5. Priorize vídeos de canais verificados e com alta visualização para garantir que o link não esteja quebrado.
+1. SEMPRE use a ferramenta de Busca do Google (Google Search) para pesquisar o vídeo no YouTube e garantir que ele existe e está disponível.
+2. PRIORIZE vídeos do Brasil (em Português do Brasil). Adicione termos como "Brasil" ou "PT-BR" nas suas buscas internas se necessário.
+3. Após encontrar o vídeo real na busca, extraia o ID de 11 caracteres da URL (ex: dQw4w9WgXcQ).
+4. Use a ferramenta "openYouTubeVideo" passando este ID exato.
+5. Nunca invente ou adivinhe IDs. Sempre pesquise primeiro.
 6. Todos os vídeos que você sugerir DEVEM funcionar.`;
+  else if (expertId !== 'geral') {
+    // Check custom experts
+    try {
+      const saved = localStorage.getItem('aura_custom_experts');
+      if (saved) {
+        const customExperts = JSON.parse(saved);
+        const customExpert = customExperts.find((e: any) => e.id === expertId);
+        if (customExpert) {
+          expertInstruction = customExpert.prompt;
+        }
+      }
+    } catch (e) {
+      console.error('Error loading custom experts for prompt', e);
+    }
+  }
 
   return `Você é ${name}, uma Assistente Pessoal de IA de elite.
 ${genderInstruction}

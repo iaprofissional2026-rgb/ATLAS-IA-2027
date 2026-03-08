@@ -19,6 +19,10 @@ export function Settings() {
     setOpenRouterKey,
     geminiApiKey,
     setGeminiApiKey,
+    geminiKeys,
+    addGeminiKey,
+    removeGeminiKey,
+    useGeminiKey,
   } = useAppContext();
   
   const [name, setName] = useState(user?.name || '');
@@ -27,6 +31,16 @@ export function Settings() {
   const [geminiApiKeyInput, setGeminiApiKeyInput] = useState(geminiApiKey);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const nextKeyName = `7mk${geminiKeys.length + 1}`;
+
+  const handleAddGeminiKey = () => {
+    if (!geminiApiKeyInput.trim()) return;
+    addGeminiKey(nextKeyName, geminiApiKeyInput);
+    setGeminiApiKeyInput('');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   const colors = [
     { name: 'Azul', value: '#3b82f6' },
@@ -256,9 +270,55 @@ export function Settings() {
                   value={geminiApiKeyInput}
                   onChange={(e) => setGeminiApiKeyInput(e.target.value)}
                   className="w-full px-4 py-3 bg-white/50 dark:bg-black/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-[var(--color-accent)] outline-none transition-all text-gray-900 dark:text-gray-100 font-mono text-xs"
-                  placeholder="AIzaSy..."
+                  placeholder="Cole sua nova chave AIzaSy..."
                 />
+                <button
+                  onClick={handleAddGeminiKey}
+                  disabled={!geminiApiKeyInput.trim()}
+                  className="absolute right-2 top-2 bottom-2 px-3 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  Registrar {nextKeyName}
+                </button>
               </div>
+
+              {geminiKeys.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase">Suas Chaves Salvas</h4>
+                  <div className="space-y-2">
+                    {geminiKeys.map((k) => (
+                      <div 
+                        key={k.id} 
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          geminiApiKey === k.key 
+                            ? 'border-blue-500 bg-blue-500/10' 
+                            : 'border-gray-100 dark:border-gray-800 bg-white/30 dark:bg-black/20'
+                        }`}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-gray-900 dark:text-white">{k.name}</span>
+                          <span className="text-[8px] font-mono text-gray-500">{k.key.substring(0, 12)}...</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {geminiApiKey !== k.key && (
+                            <button
+                              onClick={() => useGeminiKey(k.id)}
+                              className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-[10px] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              Usar
+                            </button>
+                          )}
+                          <button
+                            onClick={() => removeGeminiKey(k.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

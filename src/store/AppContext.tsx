@@ -51,6 +51,14 @@ export interface UserProfile {
   gender?: 'male' | 'female';
 }
 
+export interface CustomExpert {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+  icon?: string;
+}
+
 interface AppContextType {
   currentScreen: Screen;
   setCurrentScreen: (screen: Screen) => void;
@@ -82,6 +90,13 @@ interface AppContextType {
   setOpenRouterKey: (key: string) => void;
   geminiApiKey: string;
   setGeminiApiKey: (key: string) => void;
+  geminiKeys: { id: string; name: string; key: string }[];
+  addGeminiKey: (name: string, key: string) => void;
+  removeGeminiKey: (id: string) => void;
+  useGeminiKey: (id: string) => void;
+  customExperts: CustomExpert[];
+  addCustomExpert: (expert: CustomExpert) => void;
+  removeCustomExpert: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -157,6 +172,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return '';
     }
   });
+  const [geminiKeys, setGeminiKeys] = useState<{ id: string; name: string; key: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('aura_gemini_keys_vault');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Error parsing aura_gemini_keys_vault from localStorage', e);
+      return [];
+    }
+  });
+
+  const [customExperts, setCustomExperts] = useState<CustomExpert[]>(() => {
+    try {
+      const saved = localStorage.getItem('aura_custom_experts');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Error parsing aura_custom_experts from localStorage', e);
+      return [];
+    }
+  });
+
+  const addCustomExpert = (expert: CustomExpert) => {
+    const updated = [...customExperts, expert];
+    setCustomExperts(updated);
+    localStorage.setItem('aura_custom_experts', JSON.stringify(updated));
+  };
+
+  const removeCustomExpert = (id: string) => {
+    const updated = customExperts.filter(e => e.id !== id);
+    setCustomExperts(updated);
+    localStorage.setItem('aura_custom_experts', JSON.stringify(updated));
+  };
+
+  const addGeminiKey = (name: string, key: string) => {
+    const newKey = { id: uuidv4(), name, key };
+    const updated = [...geminiKeys, newKey];
+    setGeminiKeys(updated);
+    localStorage.setItem('aura_gemini_keys_vault', JSON.stringify(updated));
+    
+    // If it's the first key or current key is empty, use it automatically
+    if (!geminiApiKey) {
+      setGeminiApiKey(key);
+    }
+  };
+
+  const removeGeminiKey = (id: string) => {
+    const updated = geminiKeys.filter(k => k.id !== id);
+    setGeminiKeys(updated);
+    localStorage.setItem('aura_gemini_keys_vault', JSON.stringify(updated));
+  };
+
+  const useGeminiKey = (id: string) => {
+    const keyObj = geminiKeys.find(k => k.id === id);
+    if (keyObj) {
+      setGeminiApiKey(keyObj.key);
+    }
+  };
+
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>(() => {
     try {
       const saved = localStorage.getItem('aura_theme_settings');
@@ -353,6 +425,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setOpenRouterKey,
         geminiApiKey,
         setGeminiApiKey,
+        geminiKeys,
+        addGeminiKey,
+        removeGeminiKey,
+        useGeminiKey,
+        customExperts,
+        addCustomExpert,
+        removeCustomExpert,
       }}
     >
       {children}
