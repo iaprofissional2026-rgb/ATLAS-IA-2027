@@ -189,6 +189,46 @@ export function Settings() {
 
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Obter Chave Gratuita
+          </h2>
+          <div className="glass-panel rounded-2xl p-5 shadow-sm bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-100 dark:border-blue-800/50">
+            <div className="flex items-start space-x-4 mb-4">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-500/20">
+                <Key className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Gerar Chave Gemini Grátis</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Acesse o Google AI Studio para criar sua chave oficial. É 100% gratuito, sem precisar de cartão ou faturamento.
+                </p>
+              </div>
+            </div>
+            
+            <a 
+              href="https://aistudio.google.com/app/apikey" 
+              target="_blank" 
+              rel="noreferrer"
+              className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex justify-center items-center space-x-2 shadow-md shadow-blue-500/10"
+            >
+              <Smartphone className="w-5 h-5" />
+              <span>Acessar Google AI Studio</span>
+              <ExternalLink className="w-4 h-4 ml-1 opacity-70" />
+            </a>
+            
+            <div className="mt-4 p-3 bg-white/50 dark:bg-black/30 rounded-lg border border-blue-100/50 dark:border-blue-800/30">
+              <h4 className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase mb-1">Passo a Passo:</h4>
+              <ol className="text-[10px] text-gray-600 dark:text-gray-400 space-y-1 list-decimal ml-3">
+                <li>Clique no botão acima e faça login com seu Google.</li>
+                <li>Clique em <b>"Create API key"</b>.</li>
+                <li>Copie a chave gerada (começa com AIza...).</li>
+                <li>Cole no campo "Chave Gemini API" abaixo e salve.</li>
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             API & Conexões
           </h2>
           <div className="glass-panel rounded-2xl p-5 shadow-sm space-y-4">

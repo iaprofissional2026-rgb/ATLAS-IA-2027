@@ -23,7 +23,13 @@ const getOpenRouterKey = () => {
 };
 
 const getGeminiApiKey = () => {
-  // Use the platform-provided Gemini API key
+  try {
+    // 1. Check user provided key in localStorage (highest priority)
+    const userKey = localStorage.getItem('aura_gemini_api_key');
+    if (userKey && userKey.trim()) return userKey;
+  } catch (e) {}
+
+  // 2. Fallback to platform-provided Gemini API key
   return process.env.GEMINI_API_KEY;
 };
 
@@ -201,11 +207,18 @@ export async function* generateChatResponseStream(
   expertId: string
 ): AsyncGenerator<{ text?: string; toolCalls?: any[]; imageUrl?: string }> {
   const platformApiKey = getGeminiApiKey();
-  
+  const userGeminiKey = (() => {
+    try { return localStorage.getItem('aura_gemini_api_key'); } catch(e) { return null; }
+  })();
+  const userOpenRouterKey = (() => {
+    try { return localStorage.getItem('aura_openrouter_api_key'); } catch(e) { return null; }
+  })();
+
   // If it's a native Gemini model, use the SDK directly
   const isNativeGeminiModel = currentModel === 'gemini-3-flash-preview' || currentModel === 'gemini-3.1-pro-preview';
 
-  if (platformApiKey && isNativeGeminiModel) {
+  // Use SDK if we have a Gemini key (user or platform) AND user hasn't forced an OpenRouter key for this model
+  if (platformApiKey && isNativeGeminiModel && !userOpenRouterKey) {
      try {
        yield* geminiSdkFallback(messages, userMemory, userName, persona, expertId, currentModel);
        return;
@@ -217,9 +230,9 @@ export async function* generateChatResponseStream(
   // Fallback to OpenRouter for other models or if SDK fails
   const isGeminiModel = currentModel.includes('gemini');
 
-  // SILENT FALLBACK: If it's a Gemini model (even if selected via OpenRouter ID) and we have a platform key, 
-  // use the Gemini SDK directly to avoid OpenRouter credit issues.
-  if (isGeminiModel && platformApiKey) {
+  // SILENT FALLBACK: If it's a Gemini model (even if selected via OpenRouter ID) and we have a Gemini key, 
+  // use the Gemini SDK directly to avoid OpenRouter credit issues, UNLESS user provided an OpenRouter key.
+  if (isGeminiModel && platformApiKey && !userOpenRouterKey) {
     try {
       let geminiModelId = 'gemini-3-flash-preview';
       if (currentModel.includes('pro') || currentModel.includes('2.0')) geminiModelId = 'gemini-3.1-pro-preview';

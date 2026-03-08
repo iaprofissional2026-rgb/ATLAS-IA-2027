@@ -323,18 +323,22 @@ export function Chat() {
         // Translate common errors for better UX
         if (error.message.includes('429') || error.message.includes('Rate limit')) 
           errorText = 'Limite de requisições atingido. Aguarde um momento ou tente outro modelo.';
-        else if (error.message.includes('403')) errorText = 'Chave de API inválida ou expirada.';
-        else if (error.message.includes('user not found')) errorText = 'Usuário ou Chave de API não encontrada. Verifique suas configurações.';
+        else if (error.message.includes('403')) errorText = 'Chave de API inválida ou expirada. Verifique suas configurações.';
+        else if (error.message.includes('user not found')) errorText = 'Chave de API não encontrada no OpenRouter. Você pode usar sua própria chave gratuita do Gemini nos Ajustes.';
         else if (error.message.includes('SAFETY')) errorText = 'A resposta foi bloqueada por filtros de segurança.';
         else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) errorText = 'Erro de conexão. Verifique sua internet.';
         else if (error.message.includes('Request timeout')) errorText = 'A conexão demorou muito. Tente novamente.';
         else errorText = `Erro: ${error.message}`;
       }
 
+      const isKeyError = error?.message?.includes('403') || error?.message?.includes('user not found') || error?.message?.includes('API key');
+
       const errorMessage: Message = {
         id: uuidv4(),
         role: 'model',
-        text: errorText,
+        text: isKeyError 
+          ? `${errorText}\n\n💡 **Dica:** Você pode obter uma chave Gemini 100% gratuita no Google AI Studio e colar nos Ajustes para usar sem limites.`
+          : errorText,
         timestamp: Date.now(),
         isError: true,
       };
