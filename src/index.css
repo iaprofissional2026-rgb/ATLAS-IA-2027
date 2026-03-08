@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-accent: #3b82f6;
+  --bg-color: #f5f5f5;
+  --glass-opacity: 0.1;
+  --glass-blur: 10px;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.dark {
+  --bg-color: #0a0a0a;
+}
+
+@theme {
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
+  --color-accent: var(--color-accent);
+}
+
+body {
+  background: var(--bg-color);
+  color: #1a1a1a;
+  transition: background 0.3s ease, color 0.3s ease;
+  font-family: var(--font-sans);
+}
+
+.dark body {
+  color: #f5f5f5;
+}
+
+.glass-panel {
+  background-color: rgba(255, 255, 255, var(--glass-opacity));
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass-panel {
+  background-color: rgba(0, 0, 0, var(--glass-opacity));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.accent-bg {
+  background-color: var(--color-accent);
+}
+
+.accent-text {
+  color: var(--color-accent);
+}
+
+/* Brand Customizations */
+:root.brand-iphone {
+  --bg-color: radial-gradient(circle at top right, #f8f8f8, #f0f0f0);
+}
+
+.dark:root.brand-iphone {
+  --bg-color: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
+}
+
+:root.brand-iphone .glass-panel {
+  border-radius: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+:root.brand-iphone button {
+  border-radius: 1.25rem;
+}
+
+:root.brand-samsung {
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --bg-color: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+}
+
+.dark:root.brand-samsung {
+  --bg-color: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+}
+
+:root.brand-samsung .glass-panel {
+  border-radius: 1.5rem;
+  border-width: 2px;
+  border-color: rgba(var(--color-accent), 0.1);
+}
+
+:root.brand-pixel {
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+  --bg-color: #fafafa;
+}
+
+.dark:root.brand-pixel {
+  --bg-color: #121212;
+}
+
+:root.brand-pixel .glass-panel {
+  border-radius: 1.75rem;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
