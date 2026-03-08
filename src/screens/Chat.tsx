@@ -324,6 +324,7 @@ export function Chat() {
         if (error.message.includes('429') || error.message.includes('Rate limit')) 
           errorText = 'Limite de requisições atingido. Aguarde um momento ou tente outro modelo.';
         else if (error.message.includes('403')) errorText = 'Chave de API inválida ou expirada.';
+        else if (error.message.includes('user not found')) errorText = 'Usuário ou Chave de API não encontrada. Verifique suas configurações.';
         else if (error.message.includes('SAFETY')) errorText = 'A resposta foi bloqueada por filtros de segurança.';
         else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) errorText = 'Erro de conexão. Verifique sua internet.';
         else if (error.message.includes('Request timeout')) errorText = 'A conexão demorou muito. Tente novamente.';

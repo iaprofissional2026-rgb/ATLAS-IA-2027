@@ -9,30 +9,22 @@ const APP_NAME = 'Aura AI';
 
 const getOpenRouterKey = () => {
   try {
+    // 1. Check user provided key in localStorage (highest priority)
     const userKey = localStorage.getItem('aura_openrouter_api_key');
     if (userKey && userKey.trim()) return userKey;
-  } catch (e) {
-    console.error('Error reading aura_openrouter_api_key from localStorage', e);
-  }
+  } catch (e) {}
   
-  // Check for Vite environment variable (useful for Netlify/Vercel deployments)
-  const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-  if (envKey) return envKey;
+  // 2. Check Vite env var (standard for production builds like Netlify)
+  const viteKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  if (viteKey && viteKey !== 'undefined') return viteKey;
   
+  // 3. Fallback to default key (if available)
   return DEFAULT_OPENROUTER_KEY;
 };
 
 const getGeminiApiKey = () => {
-  // 1. Check Vite env var (standard for production builds)
-  const viteKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (viteKey) return viteKey;
-
-  // 2. Check process.env (standard for this platform's preview)
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.API_KEY || process.env.GEMINI_API_KEY;
-  }
-
-  return undefined;
+  // Use the platform-provided Gemini API key
+  return process.env.GEMINI_API_KEY;
 };
 
 // Dynamic Model Management
@@ -209,21 +201,23 @@ export async function* generateChatResponseStream(
   expertId: string
 ): AsyncGenerator<{ text?: string; toolCalls?: any[]; imageUrl?: string }> {
   const platformApiKey = getGeminiApiKey();
+  
+  // If it's a native Gemini model, use the SDK directly
+  const isNativeGeminiModel = currentModel === 'gemini-3-flash-preview' || currentModel === 'gemini-3.1-pro-preview';
 
-  // Direct SDK usage for native Gemini models
-  if (platformApiKey && (currentModel === 'gemini-3-flash-preview' || currentModel === 'gemini-3.1-pro-preview')) {
+  if (platformApiKey && isNativeGeminiModel) {
      try {
        yield* geminiSdkFallback(messages, userMemory, userName, persona, expertId, currentModel);
        return;
      } catch (e) {
-       console.error('[Aura AI] Gemini SDK failed, attempting fallback to OpenRouter:', e);
-       // Proceed to OpenRouter fallback loop
+       console.error('[Aura AI] Gemini SDK failed:', e);
      }
   }
 
+  // Fallback to OpenRouter for other models or if SDK fails
   const isGeminiModel = currentModel.includes('gemini');
 
-  // SILENT FALLBACK: If it's a Gemini model (OpenRouter ID) and we have a platform key, 
+  // SILENT FALLBACK: If it's a Gemini model (even if selected via OpenRouter ID) and we have a platform key, 
   // use the Gemini SDK directly to avoid OpenRouter credit issues.
   if (isGeminiModel && platformApiKey) {
     try {
@@ -293,6 +287,15 @@ Data: ${new Date().toLocaleString('pt-BR')}`;
       if (!response.ok) {
         const error = await response.json();
         const errorMsg = error?.error?.message || 'Erro na API do OpenRouter';
+        
+        // If the key is invalid (user not found) and we have a platform key, 
+        // fallback immediately to Gemini SDK to ensure it "just works".
+        if ((errorMsg.includes('user not found') || errorMsg.includes('API key')) && platformApiKey) {
+          console.warn(`[Aura AI] OpenRouter key invalid for ${model}. Falling back to Gemini SDK...`);
+          yield* geminiSdkFallback(messages, userMemory, userName, persona, expertId);
+          return;
+        }
+
         console.warn(`[Aura AI] Model ${model} failed: ${errorMsg}. Trying fallback...`);
         lastError = new Error(errorMsg);
         continue; // Try next model
