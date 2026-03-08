@@ -1,9 +1,9 @@
 /**
  * Aura AI - OpenRouter Integration Service
  */
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-const DEFAULT_OPENROUTER_KEY = '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';
+const DEFAULT_OPENROUTER_KEY = '';
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https://aura-ai.netlify.app';
 const APP_NAME = 'Aura AI';
 
@@ -77,7 +77,7 @@ Data: ${new Date().toLocaleString('pt-BR')}`;
     contents: geminiMessages as any,
     config: {
       systemInstruction: systemPrompt,
-      tools: expertId === 'youtube' ? [{ functionDeclarations: [openYouTubeVideoTool.function] }] : undefined
+      tools: expertId === 'youtube' ? [{ functionDeclarations: [openYouTubeVideoTool.function as any] }] : undefined
     }
   });
 
@@ -133,14 +133,14 @@ export const openYouTubeVideoTool = {
     name: 'openYouTubeVideo',
     description: 'Abre um player de vídeo do YouTube na interface do usuário.',
     parameters: {
-      type: Type.OBJECT,
+      type: 'object',
       properties: {
         videoId: {
-          type: Type.STRING,
+          type: 'string',
           description: 'O ID único de 11 caracteres do vídeo do YouTube.',
         },
         title: {
-          type: Type.STRING,
+          type: 'string',
           description: 'O título do vídeo.',
         },
       },
@@ -155,10 +155,10 @@ export const generateImageTool = {
     name: 'generateImage',
     description: 'Gera uma imagem artística baseada em uma descrição textual.',
     parameters: {
-      type: Type.OBJECT,
+      type: 'object',
       properties: {
         prompt: {
-          type: Type.STRING,
+          type: 'string',
           description: 'A descrição detalhada da imagem (ex: "um gato astronauta no espaço").',
         },
       },
@@ -292,7 +292,12 @@ Data: ${new Date().toLocaleString('pt-BR')}`;
 
       if (!response.ok) {
         const error = await response.json();
-        const errorMsg = error?.error?.message || 'Erro na API do OpenRouter';
+        let errorMsg = error?.error?.message || 'Erro na API do OpenRouter';
+        
+        if (response.status === 401 || errorMsg.includes('User not found') || errorMsg.includes('Authentication')) {
+          errorMsg = 'Sua chave de API é inválida ou expirou. Por favor, atualize-a nas configurações.';
+        }
+        
         console.warn(`[Aura AI] Model ${model} failed: ${errorMsg}. Trying fallback...`);
         lastError = new Error(errorMsg);
         continue; // Try next model
@@ -348,8 +353,11 @@ Data: ${new Date().toLocaleString('pt-BR')}`;
       console.warn('[Aura AI] All OpenRouter models failed. Attempting final Gemini SDK fallback...');
       yield* geminiSdkFallback(messages, userMemory, userName, persona, expertId);
       return;
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Aura AI] Final Gemini SDK fallback also failed.', e);
+      if (e?.status === 401 || e?.message?.includes('401')) {
+        lastError = new Error('Sua chave de API do Gemini é inválida. Por favor, atualize-a nas configurações.');
+      }
     }
   }
 
@@ -374,8 +382,13 @@ export async function summarizeYouTubeVideo(videoId: string, persona: 'Aura' | '
     })
   });
 
+  if (!response.ok) {
+    if (response.status === 401) return 'Erro: Chave de API inválida. Por favor, atualize nas configurações.';
+    return 'Não foi possível resumir devido a um erro de conexão.';
+  }
+
   const json = await response.json();
-  return json.choices[0].message.content || 'Não foi possível resumir.';
+  return json.choices?.[0]?.message?.content || 'Não foi possível resumir.';
 }
 
 export async function generateToolResponse(
@@ -406,8 +419,13 @@ Memória: ${userMemory || 'Nenhuma'}`;
     })
   });
 
+  if (!response.ok) {
+    if (response.status === 401) return 'Erro: Chave de API inválida. Por favor, atualize nas configurações.';
+    return 'Erro de conexão ao processar ferramenta.';
+  }
+
   const json = await response.json();
-  return json.choices[0].message.content || 'Erro ao processar ferramenta.';
+  return json.choices?.[0]?.message?.content || 'Erro ao processar ferramenta.';
 }
 
 export async function generateImage(prompt: string): Promise<string> {
