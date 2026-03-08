@@ -648,7 +648,7 @@ export function Chat() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-4">
-        <div id="chat-export-container" className="space-y-6">
+        <div id="chat-export-container" className="space-y-5">
           {!hasApiKey && currentModel.includes('gemini-3.1-flash-image-preview') && (
           <div className="mx-auto max-w-md p-6 glass-panel rounded-2xl text-center space-y-4 my-8">
             <Key className="w-12 h-12 mx-auto text-amber-500" />
@@ -799,12 +799,12 @@ export function Chat() {
             >
               <div
                 className={cn(
-                  "max-w-[85%] rounded-2xl px-4 py-3 relative group",
+                  "max-w-[85%] rounded-3xl px-5 py-3.5 relative group",
                   msg.role === 'user'
-                    ? "accent-bg text-white rounded-br-sm"
+                    ? "accent-bg text-white rounded-br-md shadow-sm"
                     : msg.isError 
-                      ? "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-100 dark:border-red-900/30 rounded-bl-sm"
-                      : "glass-panel text-gray-800 dark:text-gray-200 rounded-bl-sm shadow-sm"
+                      ? "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-100 dark:border-red-900/30 rounded-bl-md"
+                      : "glass-panel text-gray-800 dark:text-gray-200 rounded-bl-md shadow-sm border border-gray-100 dark:border-gray-800/60"
                 )}
               >
                 {msg.imageUrl && (
@@ -932,7 +932,7 @@ export function Chat() {
              animate={{ opacity: 1 }}
              className="flex w-full justify-start"
            >
-             <div className="max-w-[85%] glass-panel text-gray-800 dark:text-gray-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+             <div className="max-w-[85%] glass-panel text-gray-800 dark:text-gray-200 rounded-3xl rounded-bl-md px-5 py-3.5 shadow-sm border border-gray-100 dark:border-gray-800/60">
                {streamingMessage ? (
                   <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed">
                     <ReactMarkdown 
@@ -973,7 +973,7 @@ export function Chat() {
           </div>
         )}
         
-        <div className="flex items-end bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-800/50 focus-within:ring-2 focus-within:ring-[var(--color-accent)] transition-all p-1">
+        <div className="flex items-end bg-white/50 dark:bg-black/50 backdrop-blur-sm rounded-3xl border border-gray-200/50 dark:border-gray-800/50 focus-within:ring-2 focus-within:ring-[var(--color-accent)] transition-all p-1.5 shadow-sm">
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -1007,7 +1007,7 @@ export function Chat() {
               }
             }}
             placeholder={`Mensagem para ${persona}...`}
-            className="flex-1 max-h-32 min-h-[44px] py-3 bg-transparent border-none outline-none resize-none text-gray-900 dark:text-gray-100 placeholder-gray-500"
+            className="flex-1 max-h-32 min-h-[44px] py-3 px-2 bg-transparent border-none outline-none resize-none text-gray-900 dark:text-gray-100 placeholder-gray-500"
             rows={1}
             style={{ height: 'auto' }}
             onInput={(e) => {
@@ -1021,9 +1021,9 @@ export function Chat() {
             onClick={() => handleSend()}
             disabled={(!input.trim() && !selectedImage) || isTyping}
             className={cn(
-              "p-3 m-1 rounded-xl transition-all",
+              "p-3 m-1 rounded-2xl transition-all",
               (input.trim() || selectedImage)
-                ? "accent-bg text-white hover:opacity-90" 
+                ? "accent-bg text-white hover:opacity-90 shadow-sm" 
                 : "text-gray-400 bg-transparent"
             )}
           >
