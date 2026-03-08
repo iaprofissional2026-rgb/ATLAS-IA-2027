@@ -1,7 +1,7 @@
 /**
  * Aura AI - OpenRouter Integration Service
  */
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 const DEFAULT_OPENROUTER_KEY = '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';
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https://aura-ai.netlify.app';
@@ -77,7 +77,7 @@ Data: ${new Date().toLocaleString('pt-BR')}`;
     contents: geminiMessages as any,
     config: {
       systemInstruction: systemPrompt,
-      tools: expertId === 'youtube' ? [{ functionDeclarations: [openYouTubeVideoTool.function] }] : undefined
+      tools: expertId === 'youtube' ? [{ functionDeclarations: [openYouTubeVideoTool.function as any] }] : undefined
     }
   });
 
@@ -133,14 +133,14 @@ export const openYouTubeVideoTool = {
     name: 'openYouTubeVideo',
     description: 'Abre um player de vídeo do YouTube na interface do usuário.',
     parameters: {
-      type: Type.OBJECT,
+      type: 'object',
       properties: {
         videoId: {
-          type: Type.STRING,
+          type: 'string',
           description: 'O ID único de 11 caracteres do vídeo do YouTube.',
         },
         title: {
-          type: Type.STRING,
+          type: 'string',
           description: 'O título do vídeo.',
         },
       },
@@ -155,10 +155,10 @@ export const generateImageTool = {
     name: 'generateImage',
     description: 'Gera uma imagem artística baseada em uma descrição textual.',
     parameters: {
-      type: Type.OBJECT,
+      type: 'object',
       properties: {
         prompt: {
-          type: Type.STRING,
+          type: 'string',
           description: 'A descrição detalhada da imagem (ex: "um gato astronauta no espaço").',
         },
       },
